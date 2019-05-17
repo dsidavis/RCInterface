@@ -1,0 +1,6 @@
+Package: Rqpdf
+Version: 0.1-0
+Title: Illustrates interface to libqpdf
+Description: Shows autoconf and pkg-config.
+Author: DTL <duncan@r-project.org>
+Maintainer:  DTL <duncan@r-project.org>

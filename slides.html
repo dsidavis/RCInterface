@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>R and C/C++ Code</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# R and C/C++ Code
+
+## [https://github.com/dsidavis/RCInterface](https://github.com/dsidavis/RCInterface)
+
+
+### Duncan Temple Lang
+
+<div style="clear: both"/>
+
+<!-- <hr width="50%"/> -->
+<img src="http://dsi.ucdavis.edu/images/dsi_banner.png" height="40%"></img>
+
+---
+layout: true
+<img style="float: right" src="http://dsi.ucdavis.edu/images/dsi_brand_logo.png"></img>
+
+---
+
+# Overview
++ Compilation, linking, shared libraries, loading
++ Make
++ R package
++ Debugging
++ configure and autoconf
+
+---
+
+# Why is Compile Code Faster
+
++ Consider 1 + 2
+   + In R
+   + In C
+
+---
+# Compiled Code
++ See Plus/plus.c
+
+```
+double plus0()
+{
+    return(1+2);
+}
+```
+
++ Machine Code
+```
+_plus0:
+       0:	55 	pushq	%rbp
+       1:	48 89 e5 	movq	%rsp, %rbp
+       4:	f2 0f 10 05 4c 00 00 00 	movsd	76(%rip), %xmm0
+       c:	5d 	popq	%rbp
+       d:	c3 	retq
+       e:	66 90 	nop
+```
+
+---
+# More Complicated Version of plus0
+
+```
+double plus1()
+{
+    double ans;
+    ans = 1;
+    ans += 2;
+    return(ans);
+}
+```
+
++ Exactly the same compiled code
+
+---
+
+# When to Use Compile Code
+
++ Avoid reimplementing existing code
+  + there is an existing, reliable, maintained compiled routine or library
+
++ Speed is absolutely essential
+  + Implement slow version
+  + Profile
+  + Implement only slow parts
+  + Compare results with slow version to ensure correct.
+
+---
+
+# Calling a Routine
+
++ Two interfaces in R to C/C++ code
+  + .C()
+  + .Call()
+
++ .Call() more flexible.
+  + .C() limited, but simple(r) when appropriate.
+
++ Can only call routines with specific signatures
+  + Typically create wrapper routines
+    + Called from R, convert and pass arguments to real C routine
+ 
++ Direct call possible with, e.g., rdyncall and Rffi.
+
++ Also .Fortran() and .External()
+---
+
+# .C()
+
++ Only accepts arrays from basic R types
+  + logical, integer, numeric, character vectors
+  + typically needs their lengths/number of elements
+    + passed as an array of length 1!
+
++ result returned by filling in values in the argument(s)
+
+---
+
+# .C() example
+
++ In dotC/src
+
+```
+dyn.load("dotC.so")
+z = as.numeric(1:100)
+o = .C("add1", z, length(z), ans = numeric(length(z))) $ans
+o
+```
+
+---
+# .C() wrapper functions (in R)
+
++ R function to call the C routine
+  + Coerce all of the arguments to expected type
+  + name the result elements and extract them
+    + can be more than one element containing results
+
+```
+add1 =
+function(x)
+{
+  x = as.numeric(x)
+  o = .C("add1", x, length(x), ans = numeric(length(x))) $ans
+}
+```
+
+---
+# "Compilation" Steps
+
++ Compile and convert source files top dynamic shared object (DSO)/DLL
+
++ R CMD SHLIB plus.c
++ R CMD SHLIB -o foo.so a.c b.c
+
++ Or compiled automatically in package installation.
+  + R CMD INSTALL packageDirectory
+
++ Actually, several steps
+  + Preprocessor
+  + Compile to object code
+  + Link object code to executable or DSO/DLL
+
++ Load DSO/DLL
+  + dyn.load() in R
+  + useDynLib() in NAMESPACE file of package.
+
++ Beauty of C/C++ is can fail at each step!
+
+---
+
+# Makevars file
+
++ Often need to specify compilation flags
++ Do this in Makevars
+
++ Don't specify compiler (CC),
+  + allow user or central install override this
+ 
+
+---
+# Make
+
++ Purpose - created derived files
+  + update specific files when one or more change
+  + declared dependencies of one output on one or more inputs.
+  +  DSOs from .c/.cpp files, compiling .o's and 
+
+---
+
+# .Call()
+
++ Pass arbitrary R objects to C routine
++ Return an R object.
+
++ Can examine the type of an argument
++ Can create new R objects
+
++ All R objects in C have type `SEXP`
+
++ C-level API to manipulate SEXPs
+  + Query objects - type, length, dimensions, attributes and values/elements
+  + Create new objects
+
+---
+# Garbage Collection (GC)
+
++ Since essentially working with R at the C-level,
+  garbage collection can occur at any time in the C routine.
+
++ Need to mark local R objects as being used so not GC'ed.
+  + PROTECT(obj) just after creating/modifying it
+  + UNPROTECT(num) at the "end" of the routine, release &lt;num&gt; objects.
+
++ Use `gctorture(TRUE)` to debug C code.
+  + Very slow, but worth it.
+
+
+---
+# External Pointer Objects
+
+---
+
+# Debugging Compiled Code in R
+
++ Need to be able to
+  + stop at particular lines of code to explore
+  + stop on crashes (segmentation faults) for post-mortem debugging.
+
++ Run R under the debugger
+  + Debug R itself and
+  + loaded C/C++ code in packages/dyn.load()
+
++ R -d lldb
++ R -d gdb
+
++ For lldb on OSX, I need to use the alias
+```
+command alias Rr process launch -v DYLD_FALLBACK_LIBRARY_PATH=/Users/duncan/R-devel/build/lib
+```
+to run the R process within the debugger.
+
+
+---
+# Configuring Package Code
+
++ Need to provide machine-specific or local flags to compile C/C++ code
+  + Location of include directories
+  + pre-processor flags to enable/disable features in C/C++ code
+  + library directories
++ Modify R code for particular installation
++ Allow package installer to customize package features and compilation
+
++ R CMD INSTALL --configure-args='.....'
+  + `install.packages(, configure.args = c())`
+  
+
+---
+# Useful Tools
+
++ compiler warnings
++ valgrind
++ ldd/otool
++ nm
+
+---
+# Auto Generating Bindings
+
++ Rcpp
++ SWIG
++ RCodeGen
+  + See RCUDA
+  + RCIndex for programmatically reading C/C++ code
+
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
