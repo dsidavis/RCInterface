@@ -14,7 +14,7 @@ R_get_pdf_info_val(SEXP r_filename, SEXP r_key)
     }
     
     char const * ans = qpdf_get_info_key(tmp, CHAR(STRING_ELT(r_key, 0)));
-    SEXP rans = ScalarString(mkChar(ans));
+    SEXP rans = ScalarString(ans ? mkChar(ans) : R_NaString);
     qpdf_cleanup(&tmp);
     return(rans);
 }
