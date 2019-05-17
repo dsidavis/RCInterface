@@ -1,0 +1,3 @@
+PKG_CONFIG=@PKG_CONFIG@
+PKG_CPPFLAGS=$(shell $(PKG_CONFIG) --cflags libqpdf)
+PKG_LIBS=$(shell $(PKG_CONFIG) --libs libqpdf)

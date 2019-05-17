@@ -1,0 +1,16 @@
+AC_INIT(src)
+
+AC_PATH_PROG(PKG_CONFIG, pkg-config)
+
+if test -z "$PKG_CONFIG" ; then
+echo "Cannot find pkg-config
+exit 1
+fi
+
+AC_SUBST(PKG_CONFIG)
+
+QPDF_VERSION=`$PKG_CONFIG --modversion libqpdf`
+
+AC_SUBST(QPDF_VERSION)
+
+AC_OUTPUT(src/Makevars R/version.R)
