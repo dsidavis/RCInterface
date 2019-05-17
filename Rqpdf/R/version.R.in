@@ -1,2 +1,11 @@
-libqpdfVersion = @QPDF_VERSION@
+libqpdfVersion = "@QPDF_VERSION@"
 
+
+version =
+function(runTime = TRUE)    
+{
+    if(runTime)
+        .Call("R_qpdf_version_rt")
+    else
+        libqpdfVersion
+}

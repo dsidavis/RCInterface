@@ -1,0 +1,56 @@
+[sampleDocs-168]>R -d lldb
+(lldb) target create "/Users/duncan/R-devel/build/bin/exec/R"
+Current executable set to '/Users/duncan/R-devel/build/bin/exec/R' (x86_64).
+(lldb) Rr
+Process 37260 launched: '/Users/duncan/R-devel/build/bin/exec/R' (x86_64)
+
+R Under development (unstable) (2018-11-10 r75583) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin17.7.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+PID = 37260 
+Time = 2019-05-17 07:26:44 
+Dir = /Users/duncan/DSI/Workshops/RCInterface/Rqpdf/inst/sampleDocs 
+getwd()
+1> getwd()
+[1] "/Users/duncan/DSI/Workshops/RCInterface/Rqpdf/inst/sampleDocs"
+[26:47] 2> library(Rqpdf)
+[26:49] 3> pdfInfo("rplot.pdf", "Author")
+error: R debug map object file '/Users/duncan/R-devel/build/src/main/devices.o' has changed (actual time is 2019-04-06 07:38:53.000000000, debug map time is 2018-11-11 05:29:55.000000000) since this executable was linked, file will be ignored
+Process 37260 stopped
+* thread #1, queue = 'com.apple.main-thread', stop reason = EXC_BAD_ACCESS (code=1, address=0x0)
+    frame #0: 0x00007fff70ca1232 libsystem_c.dylib`strlen + 18
+libsystem_c.dylib`strlen:
+->  0x7fff70ca1232 <+18>: pcmpeqb (%rdi), %xmm0
+    0x7fff70ca1236 <+22>: pmovmskb %xmm0, %esi
+    0x7fff70ca123a <+26>: andq   $0xf, %rcx
+    0x7fff70ca123e <+30>: orq    $-0x1, %rax
+Target 0: (R) stopped.
+(lldb) up
+R was compiled with optimization - stepping may behave oddly; variables may not be available.
+frame #1: 0x000000010009c8de R`Rf_mkChar(name=0x0000000000000000) at envir.c:3763 [opt]
+   3760	
+   3761	SEXP mkChar(const char *name)
+   3762	{
+-> 3763	    size_t len =  strlen(name);
+    	                  ^
+   3764	    if (len > INT_MAX)
+   3765		error("R character strings are limited to 2^31-1 bytes");
+   3766	    return mkCharLenCE(name, (int) len, CE_NATIVE);
+(lldb) print name
+(const char *) $0 = 0x0000000000000000
+(lldb) q
