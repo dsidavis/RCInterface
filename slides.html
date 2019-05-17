@@ -221,6 +221,32 @@ function(x)
   + Create new objects
 
 ---
+# Accessing Values in R Objects
+
++ TYPEOF(robj) to determine what the R object is
+  + like typeof() in R, but returns enumerated constant.
+
++ Access data portion with corresponding macro
+  + arary of primitive values
+  + LOGICAL() - int *
+  + INTEGER() - int *
+  + REAL()   - double *
+
++ Character vectors
+   + STRING_ELT(robj, idx)
+   + SET_STRING_ELT(robj, idx, value)
++ Lists
+  + VECTOR_ELT(robj, idx)
+  + SET_VECTOR_ELT(robj, idx, value)
+
+
+---
+# Creating New R Objects in C/C++
+
++ `allocVector(type, length)`
++ Macros, e.g., NEW_NUMERIC(), NEW_LIST()
+
+---
 # Garbage Collection (GC)
 
 + Since essentially working with R at the C-level,
@@ -258,6 +284,9 @@ command alias Rr process launch -v DYLD_FALLBACK_LIBRARY_PATH=/Users/duncan/R-de
 ```
 to run the R process within the debugger.
 
+---
+
+# See Rqpdf at tag segFault
 
 ---
 # Configuring Package Code
@@ -271,7 +300,13 @@ to run the R process within the debugger.
 
 + R CMD INSTALL --configure-args='.....'
   + `install.packages(, configure.args = c())`
-  
+
+---
+
+# See Rqpdf package in repos.
++ configure.in
++ src/Makevars.in
++ R/version.R.in  
 
 ---
 # Useful Tools
