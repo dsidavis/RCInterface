@@ -8,6 +8,7 @@
 #undef isNull 
 
 SEXP FieldObjHelperToR(QPDFFormFieldObjectHelper ffh);
+SEXP QPDFObjectHandleToR(QPDFObjectHandle h, bool followGen = false);
 
 extern "C"
 SEXP
@@ -37,8 +38,7 @@ R_getFormValues(SEXP r_filename)
             // Get all widget annotations for each page. Widget
             // annotations are the ones that contain the details of
             // what's in a form field.
-            std::vector<QPDFAnnotationObjectHelper> annotations =
-                afdh.getWidgetAnnotationsForPage(*page_iter);
+            std::vector<QPDFAnnotationObjectHelper> annotations = afdh.getWidgetAnnotationsForPage(*page_iter);
 
             SEXP el, names;
             el = NEW_LIST(annotations.size());
@@ -59,6 +59,10 @@ R_getFormValues(SEXP r_filename)
                 // though there's nothing that prevents it from being
                 // possible.
                 QPDFFormFieldObjectHelper ffh = afdh.getFieldForAnnotation(*annot_iter);
+                if(ffh.getFieldType() == "/Ch") {
+                    Rprintf("got a /Ch.");
+                    Rf_PrintValue(QPDFObjectHandleToR(annot_iter->getObjectHandle().getKey("/Opt")));
+                }                
                 SET_STRING_ELT(names, annotCtr, mkChar(ffh.getMappingName().c_str()));
                 SET_VECTOR_ELT(el, annotCtr, FieldObjHelperToR(ffh));
             }
@@ -70,10 +74,43 @@ R_getFormValues(SEXP r_filename)
         return(ans);
 }
 
+SEXP
+convertQPDFArrayToR(QPDFObjectHandle h)
+{
+    int len = h.getArrayNItems();
+    SEXP ans;
+    PROTECT(ans = NEW_LIST(len));
+    for(int i = 0; i < len; i++) 
+        SET_VECTOR_ELT(ans, i, QPDFObjectHandleToR(h.getArrayItem(i)));
+
+    UNPROTECT(1);
+    return(ans);
+}
 
 SEXP
-QPDFObjectHandleToR(QPDFObjectHandle h)
+convertQPDFDictToR(QPDFObjectHandle h)
 {
+    std::set<std::string> keys = h.getKeys();
+    int len = keys.size(), i = 0;
+    SEXP ans, names;
+    PROTECT(ans = NEW_LIST(len));
+    PROTECT(names = NEW_CHARACTER(len));
+    std::set<std::string>::iterator it = keys.begin();
+    for( ; i < len; i++, ++it) {
+        SET_VECTOR_ELT(ans, i, QPDFObjectHandleToR(h.getKey(*it)));
+        SET_STRING_ELT(names, i, mkChar(it->c_str()));
+    }
+    SET_NAMES(ans, names);
+    UNPROTECT(2);
+    return(ans);
+}
+
+
+SEXP
+QPDFObjectHandleToR(QPDFObjectHandle h, bool followGen)
+{
+    bool isOID = (h.getObjectID() > 0); 
+
     SEXP ans = R_NilValue;
     switch(h.getTypeCode()) {
 
@@ -91,7 +128,16 @@ QPDFObjectHandleToR(QPDFObjectHandle h)
         break;
     case QPDFObject::ot_name:
         ans = ScalarString(mkChar(h.getName().c_str()));
-        break;                                                   
+        break;
+    case QPDFObject::ot_array:
+        ans = convertQPDFArrayToR(h);
+        break;
+    case QPDFObject::ot_dictionary:
+        if(!followGen && isOID)
+            ans = NEW_LIST(0); //  XXX fix.
+        else
+            ans = convertQPDFDictToR(h);
+        break;                                                                   
     default:
         ans = R_NilValue;            
         break;            
@@ -107,13 +153,20 @@ FieldObjHelperToR(QPDFFormFieldObjectHelper ffh)
 
     // isNull, getFieldType(), getMappingName(), getValue(), getDefaultValue()
     SEXP ans, names;
-    int numFields = 6, field = 0;
+    int numFields = 5, field = 0;
     PROTECT(ans = NEW_LIST(numFields));
     PROTECT(names = NEW_CHARACTER(numFields));
 
-    SET_VECTOR_ELT(ans, field, ScalarLogical(ffh.isNull()));
-    SET_STRING_ELT(names, field++, mkChar("isNull"));
+// Doesn't seem useful.
+//    SET_VECTOR_ELT(ans, field, ScalarLogical(ffh.isNull()));
+//    SET_STRING_ELT(names, field++, mkChar("isNull"));
 
+#if 0    
+    if(ffh.getFieldType() == "/Ch") {
+        Rprintf("got a /Ch.  /Opt = '%s'\n",    ffh.getInheritableFieldValueAsString("/V").c_str());
+    }
+#endif
+    
     SET_VECTOR_ELT(ans, field, ScalarString(mkChar(ffh.getFieldType().c_str())));
     SET_STRING_ELT(names, field++, mkChar("fieldType"));
 
