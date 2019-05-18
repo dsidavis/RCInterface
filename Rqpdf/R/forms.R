@@ -29,8 +29,9 @@ function(z, page = NA)
     vars = names(z[[1]])
     tmp = lapply(vars, function(id) sapply(z, `[[`, id))
     names(tmp) = vars
-    d = as.data.frame(tmp[-5], stringsAsFactors = FALSE)
-    d$defaultValue = I(tmp[[5]])
+    i = match("defaultValue", vars)
+    d = as.data.frame(tmp[-i], stringsAsFactors = FALSE)
+    d$defaultValue = I(tmp[[i]])
     d$page = page
     d
 }
