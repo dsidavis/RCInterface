@@ -1,3 +1,4 @@
+library(Rqpdf)
 
 tmp = .Call("R_qpdf_data_init")
 .Call("R_qpdf_data_read", tmp, "inst/sampleDocs/rplot.pdf")
