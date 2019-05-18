@@ -1,11 +1,4 @@
-#include <qpdf/QPDF.hh>
-#include <qpdf/QPDFPageDocumentHelper.hh>
-#include <qpdf/QPDFAcroFormDocumentHelper.hh>
-
-#include <Rdefines.h>
-
-extern SEXP QPDFObjectHandleToR(QPDFObjectHandle h, bool followGen = false);
-SEXP R_qpdf_dictKeys(QPDFObjectHandle h);
+#include "Rqpdf.h"
 
 extern "C"
 SEXP
@@ -15,8 +8,17 @@ R_getRoot(SEXP r_filename)
    qpdf.processFile(CHAR(STRING_ELT(r_filename, 0)));
    QPDFObjectHandle r = qpdf.getRoot();
    return(QPDFObjectHandleToR(r, true));
-   // return(R_qpdf_dictKeys(r)); 
 }
+
+extern "C"
+SEXP
+R_getRoot_QPDF(SEXP r_qpdf, SEXP r_root)
+{
+   QPDF *qpdf = (QPDF*) R_ExternalPtrAddr(r_qpdf);    
+   QPDFObjectHandle r = LOGICAL(r_root)[0] ? qpdf->getRoot() : qpdf->getTrailer();
+   return(QPDFObjectHandleToR(r, true));
+}
+
 
 extern "C"
 SEXP
@@ -25,7 +27,6 @@ R_getTrailer(SEXP r_filename)
    QPDF qpdf;
    qpdf.processFile(CHAR(STRING_ELT(r_filename, 0)));
    QPDFObjectHandle r = qpdf.getTrailer();
-//   return(R_qpdf_dictKeys(r));
    return(QPDFObjectHandleToR(r, false));
 }
 
@@ -37,6 +38,7 @@ R_freeQPDF(SEXP v)
         delete q;
 }
 
+extern "C"
 SEXP
 R_getQPDF(SEXP r_filename)
 {
@@ -81,4 +83,15 @@ R_qpdf_dictKeys(QPDFObjectHandle h)
     
     UNPROTECT(1);
     return(names);
+}
+
+
+extern "C"
+SEXP
+R_getObjectByID(SEXP r_qpdf, SEXP id)
+{
+    QPDF *qpdf = (QPDF*) R_ExternalPtrAddr(r_qpdf);
+    QPDFObjectHandle o;
+    o = qpdf->getObjectByID(INTEGER(id)[0], INTEGER(id)[1]);
+    return(QPDFObjectHandleToR(o, true));
 }
