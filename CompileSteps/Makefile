@@ -5,6 +5,8 @@
 %.o: %.c
 	$(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $<
 
+libsm.so: 
+	$(CC) -shared -o $@ simpleMath.o sm.o -lm
 
 sm: sm.o simpleMath.o
 	$(CC) -o $@ simpleMath.o sm.o -lm
