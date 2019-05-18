@@ -1,14 +1,6 @@
-
-#include <qpdf/QPDF.hh>
-#include <qpdf/QPDFPageDocumentHelper.hh>
-#include <qpdf/QPDFAcroFormDocumentHelper.hh>
-
-#include <Rdefines.h>
-
-#undef isNull 
+#include "Rqpdf.h"
 
 SEXP FieldObjHelperToR(QPDFFormFieldObjectHelper ffh);
-SEXP QPDFObjectHandleToR(QPDFObjectHandle h, bool followGen = false);
 
 extern "C"
 SEXP
@@ -16,12 +8,6 @@ R_getFormValues(SEXP r_filename)
 {
 	QPDF qpdf;
 	qpdf.processFile(CHAR(STRING_ELT(r_filename, 0)));
-
-        // We will iterate through form fields by starting at the page
-        // level and looking at each field for each page. We could
-        // also called QPDFAcroFormDocumentHelper::getFormFields to
-        // iterate at the field level, but doing it as below
-        // illustrates how we can map from annotations to fields.
 
         QPDFAcroFormDocumentHelper afdh(qpdf);
         QPDFPageDocumentHelper pdh(qpdf);
@@ -46,18 +32,9 @@ R_getFormValues(SEXP r_filename)
             PROTECT(names = NEW_CHARACTER(annotations.size()));
             int annotCtr = 0;
             
-            for (std::vector<QPDFAnnotationObjectHelper>::iterator annot_iter =
-                     annotations.begin();
-                 annot_iter != annotations.end(); ++annot_iter, annotCtr++)
+            for (std::vector<QPDFAnnotationObjectHelper>::iterator annot_iter = annotations.begin();
+                      annot_iter != annotations.end(); ++annot_iter, annotCtr++)
             {
-                // For each annotation, find its associated field. If
-                // it's a text field, set its value. This will
-                // automatically update the document to indicate that
-                // appearance streams need to be regenerated. At the
-                // time of this writing, qpdf doesn't have any helper
-                // code to assist with appearance stream generation,
-                // though there's nothing that prevents it from being
-                // possible.
                 QPDFFormFieldObjectHelper ffh = afdh.getFieldForAnnotation(*annot_iter);
                 if(ffh.getFieldType() == "/Ch") {
                     Rprintf("got a /Ch.");
@@ -88,7 +65,7 @@ convertQPDFArrayToR(QPDFObjectHandle h)
 }
 
 SEXP
-convertQPDFDictToR(QPDFObjectHandle h)
+convertQPDFDictToR(QPDFObjectHandle h, bool followGen, bool stripSlash)
 {
     std::set<std::string> keys = h.getKeys();
     int len = keys.size(), i = 0;
@@ -98,16 +75,34 @@ convertQPDFDictToR(QPDFObjectHandle h)
     std::set<std::string>::iterator it = keys.begin();
     for( ; i < len; i++, ++it) {
         SET_VECTOR_ELT(ans, i, QPDFObjectHandleToR(h.getKey(*it)));
-        SET_STRING_ELT(names, i, mkChar(it->c_str()));
+        SET_STRING_ELT(names, i, mkChar(it->c_str() + 1));
     }
     SET_NAMES(ans, names);
     UNPROTECT(2);
     return(ans);
 }
 
+SEXP
+mkPDFIdGenRobj(QPDFObjectHandle h)
+{
+    SEXP ans;
+#if 1
+            PROTECT(ans = NEW_INTEGER(2));
+            INTEGER(ans)[0] = h.getObjectID();
+            INTEGER(ans)[1] = h.getGeneration();
+#else
+            PROTECT(ans = NEW_CHARACTER(1));
+            char buf[100];
+            sprintf(buf, "%d.%d",  h.getObjectID(), h.getGeneration());
+            SET_STRING_ELT(ans, 0, mkChar(buf));
+#endif            
+            SET_CLASS(ans, ScalarString(mkChar("QPDFReference")));
+            UNPROTECT(1);
+            return(ans);
+}
 
 SEXP
-QPDFObjectHandleToR(QPDFObjectHandle h, bool followGen)
+QPDFObjectHandleToR(QPDFObjectHandle h, bool followGen, bool stripSlash)
 {
     bool isOID = (h.getObjectID() > 0); 
 
@@ -133,10 +128,10 @@ QPDFObjectHandleToR(QPDFObjectHandle h, bool followGen)
         ans = convertQPDFArrayToR(h);
         break;
     case QPDFObject::ot_dictionary:
-        if(!followGen && isOID)
-            ans = NEW_LIST(0); //  XXX fix.
+        if(!followGen && isOID)   // do we want to do this generally for all types of objects.
+            ans = mkPDFIdGenRobj(h);
         else
-            ans = convertQPDFDictToR(h);
+            ans = convertQPDFDictToR(h, followGen, stripSlash);
         break;                                                                   
     default:
         ans = R_NilValue;            
