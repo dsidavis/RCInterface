@@ -2,7 +2,7 @@ CFLAGS=-O2
 CC=clang
 
 plus.o: plus.c
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -c -o $@ $^
 
 plus:  plus.c
 	$(CC) $(CFLAGS) -o $@ $^
