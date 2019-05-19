@@ -63,15 +63,13 @@ R_getrusage2(SEXP r_who)
 	    ERROR;
     }
 
+    int np = 0;
     PROTECT(ans = NEW_LIST(16));
+    np++; 
 
-
-    PROTECT(a = NEW_NUMERIC(2));
     SET_VECTOR_ELT(ans, 0, mkTimeval(usg.ru_utime));
-    UNPROTECT(1);
-    PROTECT(a = NEW_NUMERIC(2));
     SET_VECTOR_ELT(ans, 1, mkTimeval(usg.ru_stime));
-    UNPROTECT(1);    
+
 
     int i = 2;    
     SET_VECTOR_ELT(ans, i++, ScalarReal(usg.ru_maxrss));
