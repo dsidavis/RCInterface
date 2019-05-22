@@ -1,4 +1,4 @@
-# 
+# Why Compiled Code is Faster than Interpreted Code
 
 Consider the computation
 ```
@@ -595,8 +595,11 @@ _do_arith:
      b9a:	ff ff  <unknown>
      b9c:	0f 1f 40 00 	nopl	(%rax)
 ```
-This is approximately 480 instructions.
-This is doing a lot more than the code in our plus0 routine.
+This is approximately 480 instructions. And this is just the evaluation
+of the body of the `+(1,2)` call in R. It does not include the 
+reading the input, parsing, searching for the +  function and calling the + function.
+This is doing a lot more than the code in our plus0 routine and we may return before executing all
+the instructions.
 But that is part of the problem. We don't need the generality to compute 1+2,
 but we pay for it.
 

@@ -442,8 +442,9 @@ struct exception {
 extern int matherr(struct exception *) __attribute__((availability(macosx,introduced=10.0,deprecated=10.9)));
 # 2 "simpleMath.c" 2
 
+
 double
 sin2(double x)
 {
-    return( sin(2 * x) );
+    return( sin(2 * x * 3.141593) );
 }
