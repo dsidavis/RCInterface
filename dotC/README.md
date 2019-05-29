@@ -125,10 +125,30 @@ at 0.  So the (i = 2, j = 3) - row 2, column 3 - index is 7 corresponding to
 of the vector which starts at position 0, we have the value 8.
 
 
+
+
 What about passing or returning R lists() via .C()? Don't do this.
 Use the .Call() interface.
 
 What if our C routine returns a different type of value depending on
 the computations, e.g. an integer vector in one case or an numeric vector
-in another. If 
+in another. If this is known before the call, then one can (ab)use the .C()
+interface. Otherwise, we might use the .C() in a very akward manner. But the
+best thing to do is to create the R result object in the C code directly
+and return it directly. For this, we use the .Call() interface.
+
+## .Call() Interface
+
+The .Call() interface takes zero or more arbitrary R objects as inputs
+and returns a signel R object.
+In the R's C API, an R object has the C-type named `SEXP`.
+So the signature for a C routine to be called via .Call()
+is 
+```
+SEXP routine(SEXP arg1, SEXP arg2, SEXP arg3)
+```
+where we have 0 or more `argi` parameters.
+
+
+Since we are passing R objects rather than pointers to simple C primitive types
 
